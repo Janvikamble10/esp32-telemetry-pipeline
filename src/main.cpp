@@ -12,6 +12,7 @@ struct SensorSample
   float temperatureC;
   int32_t pressurePa;
 };
+const float highTemperatureThresholdC = 30.0f;
 
 Adafruit_BMP085 bmp;
 
@@ -50,6 +51,14 @@ void reportTask(void *parameter)
       Serial.print("Pressure: ");
       Serial.print(sample.pressurePa / 100.0);
       Serial.println("hPa");
+      if (sample.temperatureC >= highTemperatureThresholdC)
+      {
+        Serial.println("Temperature status: HIGH");
+      }
+      else
+      {
+        Serial.println("Temperatre status: NORMAL");
+      }
 
       Serial.println("---");
     }
