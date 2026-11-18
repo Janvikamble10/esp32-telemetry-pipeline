@@ -79,8 +79,29 @@ void setup()
     }
   }
 
-  xTaskCreate(sensorTask, "SensorTask", 4096, nullptr, 1, nullptr);
-  xTaskCreate(reportTask, "ReportTask", 4096, nullptr, 1, nullptr);
+  TaskHandle_t reportTaskHandle = nullptr;
+
+  BaseType_t reportTaskResult = xTaskCreate(reportTask, "ReportTask", 4096, nullptr, 1, &reportTaskHandle);
+  if (reportTaskResult != pdPASS)
+  {
+    Serial.println(" Failed to create repot task");
+    while (true)
+    {
+      delay(100);
+    }
+  }
+
+  BaseType_t sensorTaskResult = xTaskCreate(sensorTask, "SensorTask", 4096, nullptr, 1, nullptr);
+
+  if (sensorTaskResult != pdPASS)
+  {
+    vTaskDelete(reportTaskHandle);
+    Serial.println("failed to create sensor task");
+    while (true)
+    {
+      delay(100);
+    }
+  }
 }
 
 void loop()
