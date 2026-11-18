@@ -11,6 +11,7 @@ struct SensorSample
 {
   float temperatureC;
   int32_t pressurePa;
+  uint32_t sequenceNumber;
 };
 const float highTemperatureThresholdC = 30.0f;
 
@@ -20,9 +21,11 @@ QueueHandle_t sampleQueue = nullptr;
 
 void sensorTask(void *parameter)
 {
+  uint32_t nextSequenceNumber = 1;
   while (true)
   {
     SensorSample sample;
+    sample.sequenceNumber = nextSequenceNumber++;
 
     sample.temperatureC = bmp.readTemperature();
     sample.pressurePa = bmp.readPressure();
@@ -44,6 +47,8 @@ void reportTask(void *parameter)
   {
     if (xQueueReceive(sampleQueue, &sample, portMAX_DELAY) == pdPASS)
     {
+      Serial.print("Sample #");
+      Serial.println(sample.sequenceNumber);
       Serial.print("Temperature: ");
       Serial.print(sample.temperatureC);
       Serial.println("C");
