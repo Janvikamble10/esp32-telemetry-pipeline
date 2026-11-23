@@ -32,7 +32,8 @@ void sensorTask(void *parameter)
 
     if (xQueueSend(sampleQueue, &sample, pdMS_TO_TICKS(100)) != pdPASS)
     {
-      Serial.println("Warning: sample queue full");
+      Serial.print("Warning: Queue full; dropped sample # ");
+      Serial.println(sample.sequenceNumber);
     }
 
     vTaskDelay(pdMS_TO_TICKS(2000));
