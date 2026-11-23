@@ -52,18 +52,18 @@ void reportTask(void *parameter)
       Serial.println(sample.sequenceNumber);
       Serial.print("Temperature: ");
       Serial.print(sample.temperatureC);
-      Serial.println("C");
+      Serial.println(" C");
 
       Serial.print("Pressure: ");
       Serial.print(sample.pressurePa / 100.0);
-      Serial.println("hPa");
+      Serial.println(" hPa");
       if (sample.temperatureC >= highTemperatureThresholdC)
       {
         Serial.println("Temperature status: HIGH");
       }
       else
       {
-        Serial.println("Temperatre status: NORMAL");
+        Serial.println("Temperature status: NORMAL");
       }
 
       Serial.println("---");
@@ -99,7 +99,7 @@ void setup()
   BaseType_t reportTaskResult = xTaskCreate(reportTask, "ReportTask", 4096, nullptr, 1, &reportTaskHandle);
   if (reportTaskResult != pdPASS)
   {
-    Serial.println(" Failed to create repot task");
+    Serial.println(" Failed to create report task");
     while (true)
     {
       delay(100);
@@ -111,7 +111,7 @@ void setup()
   if (sensorTaskResult != pdPASS)
   {
     vTaskDelete(reportTaskHandle);
-    Serial.println("failed to create sensor task");
+    Serial.println("Failed to create sensor task");
     while (true)
     {
       delay(100);
