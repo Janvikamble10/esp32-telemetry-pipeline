@@ -6,6 +6,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 
 struct SensorSample
 {
@@ -13,11 +14,13 @@ struct SensorSample
   int32_t pressurePa;
   uint32_t sequenceNumber;
 };
+
 const float highTemperatureThresholdC = 30.0f;
 
 Adafruit_BMP085 bmp;
 
 QueueHandle_t sampleQueue = nullptr;
+SemaphoreHandle_t serialMutex = nullptr;
 
 void sensorTask(void *parameter)
 {
@@ -29,11 +32,15 @@ void sensorTask(void *parameter)
 
     sample.temperatureC = bmp.readTemperature();
     sample.pressurePa = bmp.readPressure();
-
     if (xQueueSend(sampleQueue, &sample, pdMS_TO_TICKS(100)) != pdPASS)
     {
-      Serial.print("Warning: Queue full; dropped sample # ");
-      Serial.println(sample.sequenceNumber);
+      if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdPASS)
+      {
+        Serial.print("Warning: Queue full; dropped sample # ");
+        Serial.println(sample.sequenceNumber);
+
+        xSemaphoreGive(serialMutex);
+      }
     }
 
     vTaskDelay(pdMS_TO_TICKS(2000));
@@ -48,25 +55,30 @@ void reportTask(void *parameter)
   {
     if (xQueueReceive(sampleQueue, &sample, portMAX_DELAY) == pdPASS)
     {
-      Serial.print("Sample #");
-      Serial.println(sample.sequenceNumber);
-      Serial.print("Temperature: ");
-      Serial.print(sample.temperatureC);
-      Serial.println(" C");
-
-      Serial.print("Pressure: ");
-      Serial.print(sample.pressurePa / 100.0);
-      Serial.println(" hPa");
-      if (sample.temperatureC >= highTemperatureThresholdC)
+      if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdPASS)
       {
-        Serial.println("Temperature status: HIGH");
-      }
-      else
-      {
-        Serial.println("Temperature status: NORMAL");
-      }
+        Serial.print("Sample #");
+        Serial.println(sample.sequenceNumber);
+        Serial.print("Temperature: ");
+        Serial.print(sample.temperatureC);
+        Serial.println(" C");
 
-      Serial.println("---");
+        Serial.print("Pressure: ");
+        Serial.print(sample.pressurePa / 100.0);
+        Serial.println(" hPa");
+
+        if (sample.temperatureC >= highTemperatureThresholdC)
+        {
+          Serial.println("Temperature status: HIGH");
+        }
+        else
+        {
+          Serial.println("Temperature status: NORMAL");
+        }
+
+        Serial.println("---");
+        xSemaphoreGive(serialMutex);
+      }
     }
   }
 }
@@ -88,6 +100,15 @@ void setup()
   if (sampleQueue == nullptr)
   {
     Serial.println("Failed to create sample queue");
+    while (true)
+    {
+      delay(100);
+    }
+  }
+  serialMutex = xSemaphoreCreateMutex();
+  if (serialMutex == nullptr)
+  {
+    Serial.println("failed to create serial mutex");
     while (true)
     {
       delay(100);
